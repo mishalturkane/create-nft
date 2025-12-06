@@ -17,7 +17,6 @@ function App() {
         <WalletModalProvider>
           <UmiProvider endpoint={endpoint}>
             <div className="App">
-              <h1>MONAD NFT Creator</h1>
               <CreateMonadNFT />
             </div>
           </UmiProvider>
