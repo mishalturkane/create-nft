@@ -1,15 +1,25 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { 
-  createNft, 
-  fetchDigitalAsset 
+import {
+  createNft,
+  fetchDigitalAsset
 } from '@metaplex-foundation/mpl-token-metadata';
 import { generateSigner, percentAmount } from '@metaplex-foundation/umi';
 import { useUmi } from '../context/useUmi';
 
 // Import the wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
+
+// Custom icons (using standard emojis for simplicity)
+const WalletIcon = () => <span>👛</span>;
+const NftIcon = () => <span>🖼️</span>;
+const SuccessIcon = () => <span>✅</span>;
+const ErrorIcon = () => <span>❌</span>;
+const CopyIcon = ({ copied }: { copied: boolean }) => (
+  <span style={{ fontSize: '20px' }}>{copied ? '✅' : '📋'}</span>
+);
+const ExplorerIcon = () => <span>🔍</span>;
 
 export const CreateMonadNFT = () => {
   const { umi } = useUmi();
@@ -22,9 +32,15 @@ export const CreateMonadNFT = () => {
   // Input states for NFT metadata
   const [nftName, setNftName] = useState('My NFT');
   const [nftSymbol, setNftSymbol] = useState('NFT');
-  const [nftUri, setNftUri] = useState('');
+  const [nftUri, setNftUri] = useState('https://example.com/metadata.json');
   const [nftDescription, setNftDescription] = useState('');
   const [nftImage, setNftImage] = useState('');
+
+  const shortAddress = useMemo(() => {
+    if (!publicKey) return 'Not connected';
+    const base58 = publicKey.toBase58();
+    return `${base58.slice(0, 4)}...${base58.slice(-4)}`;
+  }, [publicKey]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -42,28 +58,18 @@ export const CreateMonadNFT = () => {
       return;
     }
 
-    // Basic validation
-    if (!nftName.trim()) {
-      setError('Please enter a name for your NFT');
-      return;
-    }
-
-    if (!nftSymbol.trim()) {
-      setError('Please enter a symbol for your NFT');
-      return;
-    }
-
-    if (!nftUri.trim()) {
-      setError('Please enter a metadata URI for your NFT');
+    if (!nftName.trim() || !nftSymbol.trim() || !nftUri.trim()) {
+      setError('Name, Symbol, and Metadata URI are required.');
       return;
     }
 
     setIsCreating(true);
     setError('');
-    
+    setNftAddress('');
+
     try {
       const mint = generateSigner(umi);
-      
+
       await createNft(umi, {
         mint,
         name: nftName,
@@ -82,524 +88,415 @@ export const CreateMonadNFT = () => {
 
       const mintAddress = mint.publicKey.toString();
       setNftAddress(mintAddress);
-      
+
       const asset = await fetchDigitalAsset(umi, mint.publicKey);
       console.log('NFT Details:', asset);
 
     } catch (error: any) {
       console.error('Error creating NFT:', error);
-      setError(error.message || 'Failed to create NFT. Please try again.');
+      const message = error.message.includes('Simulation failed')
+        ? 'Transaction failed. Check devnet SOL balance and wallet permissions.'
+        : error.message || 'Failed to create NFT. Please try again.';
+      setError(message);
     } finally {
       setIsCreating(false);
     }
   };
 
+  // --- Inline Styles Object ---
+  // Note: Using standard CSS properties in camelCase
   const styles = {
+    // Main Container: Black background, white text, Space Grotesk font (fallback to sans-serif)
     container: {
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-      color: 'white',
-      padding: '20px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      backgroundColor: '#000000',
+      color: '#ffffff',
+      padding: '2rem', // p-8
+      fontFamily: '"Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    },
+    maxWidth: {
+      maxWidth: '1280px', // max-w-7xl
+      margin: '0 auto', // mx-auto
     },
     header: {
-      textAlign: 'center' as const,
-      marginBottom: '40px',
+      marginBottom: '2.5rem', // mb-10
     },
-    headerTop: {
+    headerContent: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '40px',
+      flexDirection: 'column' as const,
     },
     title: {
-      fontSize: '48px',
-      fontWeight: 'bold',
-      background: 'linear-gradient(45deg, #4facfe 0%, #00f2fe 100%)',
+      fontSize: '3rem', // sm:text-6xl
+      fontWeight: '800', // font-extrabold
+      marginBottom: '0.5rem', // mb-2
+      // Gradient text effect (simulated with Webkit)
+      background: 'linear-gradient(to right, #ffffff 0%, #60a5fa 100%)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
-      marginBottom: '16px',
     },
     subtitle: {
-      color: '#94a3b8',
-      fontSize: '18px',
+      color: '#9ca3af', // text-gray-400
+      fontSize: '1.125rem', // text-lg
     },
     grid: {
       display: 'grid',
       gridTemplateColumns: '1fr',
-      gap: '32px',
-      maxWidth: '1200px',
-      margin: '0 auto',
+      gap: '2rem', // gap-8
     },
-    '@media (min-width: 768px)': {
+    '@media (min-width: 1024px)': {
       grid: {
         gridTemplateColumns: '1fr 1fr',
       }
     },
     card: {
-      background: 'rgba(30, 41, 59, 0.5)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '20px',
-      padding: '24px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
+      backgroundColor: '#1f2937', // bg-gray-900
+      border: '1px solid rgba(55, 65, 81, 0.5)', // border-gray-700/50
+      borderRadius: '1rem', // rounded-2xl
+      padding: '1.5rem', // p-6
+      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', // shadow-2xl
     },
     cardHeader: {
-      fontSize: '24px',
-      fontWeight: 600,
-      marginBottom: '24px',
+      fontSize: '1.5rem', // text-2xl
+      fontWeight: 600, // font-semibold
+      marginBottom: '1.5rem', // mb-6
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
+      gap: '0.75rem', // gap-3
+      color: '#ffffff',
     },
     nftImage: {
       width: '100%',
-      height: '300px',
+      height: '18rem', // h-72
       objectFit: 'cover' as const,
-      borderRadius: '12px',
-      border: '2px solid rgba(255, 255, 255, 0.1)',
-      marginBottom: '20px',
-    },
-    attributeBadge: {
-      background: 'rgba(30, 41, 59, 0.8)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '8px',
-      padding: '8px 12px',
-      display: 'inline-block',
-      margin: '4px',
-    },
-    walletStatus: {
-      padding: '16px',
-      background: 'rgba(15, 23, 42, 0.5)',
-      borderRadius: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: '20px',
-    },
-    statusDot: {
-      width: '12px',
-      height: '12px',
-      borderRadius: '50%',
-      backgroundColor: connected ? '#10b981' : '#ef4444',
-      marginRight: '12px',
+      borderRadius: '0.75rem', // rounded-xl
+      border: '2px solid rgba(55, 65, 81, 0.5)', // border-2 border-gray-700/50
+      position: 'relative' as const,
+      zIndex: 10,
     },
     inputLabel: {
       display: 'block',
-      fontSize: '14px',
+      fontSize: '0.875rem', // text-sm
       fontWeight: 500,
-      marginBottom: '8px',
-      color: '#e2e8f0',
+      color: '#d1d5db', // text-gray-300
+      marginBottom: '0.25rem', // mb-1
     },
     input: {
       width: '100%',
-      padding: '12px 16px',
-      background: 'rgba(15, 23, 42, 0.5)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '8px',
-      color: 'white',
-      fontSize: '16px',
-      marginBottom: '16px',
+      padding: '0.75rem', // p-3
+      backgroundColor: '#1f2937', // bg-gray-800
+      border: '1px solid #374151', // border-gray-700
+      borderRadius: '0.5rem', // rounded-lg
+      color: '#ffffff',
+      fontSize: '1rem',
+      placeholderColor: '#6b7280', // placeholder-gray-500
       outline: 'none',
-      transition: 'border-color 0.3s ease',
-    },
-    inputFocus: {
-      borderColor: '#3b82f6',
-      boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+      transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
     },
     inputDescription: {
-      fontSize: '12px',
-      color: '#94a3b8',
-      marginBottom: '16px',
-      lineHeight: '1.5',
+      fontSize: '0.75rem', // text-xs
+      color: '#9ca3af', // text-gray-500
+      marginTop: '0.25rem', // mt-1
     },
-    createButton: {
+    createButtonBase: {
       width: '100%',
-      padding: '16px 24px',
-      fontSize: '18px',
-      fontWeight: 600,
-      borderRadius: '12px',
+      marginTop: '1.5rem', // mt-6
+      padding: '0.75rem 1.5rem', // py-3 px-6
+      fontSize: '1.125rem', // text-lg
+      fontWeight: 600, // font-semibold
+      borderRadius: '0.75rem', // rounded-xl
       border: 'none',
-      cursor: connected && !isCreating ? 'pointer' : 'not-allowed',
-      background: connected && !isCreating 
-        ? 'linear-gradient(45deg, #3b82f6 0%, #8b5cf6 100%)'
-        : '#475569',
-      color: 'white',
+      cursor: 'pointer',
       transition: 'all 0.3s ease',
-      marginTop: '20px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
     },
-    successCard: {
-      background: 'rgba(22, 163, 74, 0.1)',
-      border: '1px solid rgba(22, 163, 74, 0.2)',
-      borderRadius: '12px',
-      padding: '20px',
-      marginTop: '20px',
+    createButtonEnabled: {
+      background: 'linear-gradient(to right, #2563eb 0%, #7c3aed 100%)', // from-blue-600 to-purple-600
+      color: '#ffffff',
     },
-    addressBox: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '12px',
-      background: 'rgba(15, 23, 42, 0.5)',
-      borderRadius: '8px',
-      margin: '16px 0',
-    },
-    copyButton: {
-      padding: '8px',
-      background: 'rgba(255, 255, 255, 0.1)',
-      border: 'none',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      color: 'white',
-    },
-    explorerButton: {
-      width: '100%',
-      padding: '12px',
-      background: 'rgba(59, 130, 246, 0.2)',
-      border: '1px solid rgba(59, 130, 246, 0.3)',
-      borderRadius: '8px',
-      color: '#60a5fa',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      marginTop: '16px',
+    createButtonDisabled: {
+      backgroundColor: '#4b5563', // bg-gray-700
+      color: '#9ca3af', // text-gray-400
+      cursor: 'not-allowed',
     },
     errorBox: {
-      padding: '16px',
-      background: 'rgba(239, 68, 68, 0.1)',
-      border: '1px solid rgba(239, 68, 68, 0.2)',
-      borderRadius: '12px',
-      color: '#f87171',
-      margin: '16px 0',
-    },
-    infoBox: {
-      padding: '16px',
-      background: 'rgba(59, 130, 246, 0.1)',
-      border: '1px solid rgba(59, 130, 246, 0.2)',
-      borderRadius: '12px',
-      color: '#93c5fd',
-      fontSize: '14px',
-      marginTop: '20px',
-    },
-    featureItem: {
+      marginTop: '1.5rem',
+      padding: '1rem',
+      backgroundColor: 'rgba(127, 29, 29, 0.3)', // bg-red-900/30
+      border: '1px solid #dc2626', // border-red-700
+      borderRadius: '0.75rem',
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
-      marginBottom: '8px',
+      gap: '0.75rem',
+      color: '#f87171', // text-red-400
+      fontSize: '0.875rem',
     },
-    featureDot: {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
+    successCard: {
+      marginTop: '1.5rem',
+      padding: '1rem',
+      backgroundColor: 'rgba(4, 120, 87, 0.3)', // bg-green-900/30
+      border: '1px solid #059669', // border-green-700
+      borderRadius: '0.75rem',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+    },
+    infoBox: {
+      marginTop: '1.5rem',
+      padding: '1rem',
+      backgroundColor: '#1f2937', // bg-gray-800
+      border: '1px solid #374151', // border-gray-700
+      borderRadius: '0.75rem',
+      fontSize: '0.875rem',
+      color: '#d1d5db', // text-gray-300
     },
     footer: {
-      marginTop: '40px',
-      paddingTop: '20px',
-      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      maxWidth: '1280px',
+      margin: '3rem auto 0', // mt-12
+      paddingTop: '1.5rem', // pt-6
+      borderTop: '1px solid #1f2937', // border-gray-800
       textAlign: 'center' as const,
-      color: '#64748b',
-      fontSize: '14px',
-    },
-    previewSection: {
-      marginBottom: '24px',
-    },
-    previewLabel: {
-      color: '#94a3b8',
-      fontSize: '14px',
-      marginBottom: '8px',
-    },
-    previewValue: {
-      fontSize: '16px',
-      fontWeight: 500,
-    },
-    walletConnectContainer: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-    },
-    // Custom styles for the wallet button
-    customWalletButton: {
-      background: 'linear-gradient(45deg, #3b82f6 0%, #8b5cf6 100%)',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      padding: '10px 20px',
-      fontSize: '14px',
-      fontWeight: 600,
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)',
-      }
-    },
+      color: '#4b5563', // text-gray-600
+      fontSize: '0.875rem',
+    }
   };
+
+  const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 1024;
+  const gridStyle = isSmallScreen ? styles.grid : { ...styles.grid, ...styles['@media (min-width: 1024px)'].grid };
 
   return (
     <div style={styles.container}>
       {/* Header with wallet button */}
-      <div style={styles.headerTop}>
-        <div>
-          <h1 style={styles.title}>NFT Creator</h1>
-          <p style={styles.subtitle}>Create your unique NFT on Solana blockchain</p>
-        </div>
-        <div style={styles.walletConnectContainer}>
-          <WalletMultiButton 
-            style={{
-              background: 'linear-gradient(45deg, #3b82f6 0%, #8b5cf6 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '10px 20px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-            }}
-           
-          />
-        </div>
-      </div>
-
-      <div style={styles.grid as React.CSSProperties}>
-        {/* Left Panel - NFT Preview */}
-        <div style={styles.card}>
-          <h2 style={styles.cardHeader}>
-            <span style={{ color: '#60a5fa' }}>🖼️</span> NFT Preview
-          </h2>
-          
+      <header style={{ ...styles.maxWidth, ...styles.header }}>
+        <div style={{ ...styles.headerContent, flexDirection: isSmallScreen ? 'column' : 'row' }}>
           <div>
-            <div style={{ position: 'relative', marginBottom: '20px' }}>
-              <div style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(45deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))',
-                borderRadius: '12px',
-                filter: 'blur(20px)',
-              }} />
-              <img 
-                src={nftImage || 'https://via.placeholder.com/400x300?text=NFT+Image'} 
-                alt="NFT Preview" 
-                style={styles.nftImage}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
-                }}
-              />
-            </div>
+            <h1 style={styles.title}>
+              Solana NFT Minter
+            </h1>
+            <p style={styles.subtitle}>
+              Create Metaplex Standard NFTs using Umi
+            </p>
+          </div>
+          {/* Wallet Connect Button */}
+          <div style={{ marginTop: isSmallScreen ? '1rem' : '0' }}>
+            <WalletMultiButton
+              style={{
+                background: 'linear-gradient(to right, #2563eb 0%, #7c3aed 100%)',
+                color: '#ffffff',
+                fontWeight: 600,
+                borderRadius: '0.5rem',
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+            />
+          </div>
+        </div>
+      </header>
 
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div>
-                  <h3 style={{ fontSize: '24px', fontWeight: 'bold' }}>{nftName || 'My NFT'}</h3>
-                  <p style={{ color: '#94a3b8' }}>#{nftSymbol || 'NFT'}</p>
-                </div>
-                <span style={{
-                  padding: '4px 12px',
-                  background: 'rgba(59, 130, 246, 0.2)',
-                  color: '#60a5fa',
-                  borderRadius: '20px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}>
-                  Solana NFT
-                </span>
+      <main style={styles.maxWidth}>
+        <div style={gridStyle}>
+          {/* Left Panel - NFT Preview */}
+          <div style={styles.card}>
+            <h2 style={styles.cardHeader}>
+              <NftIcon /> NFT Preview
+            </h2>
+
+            {/* Preview Card */}
+            <div style={{ padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(55, 65, 81, 0.5)', backgroundColor: 'rgba(23, 27, 33, 0.5)' }}>
+              {/* Image */}
+              <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to bottom right, rgba(30, 64, 175, 0.5) 0%, rgba(109, 40, 217, 0.5) 100%)',
+                  borderRadius: '0.75rem', filter: 'blur(1.5rem)', opacity: 0.5,
+                }} />
+                <img
+                  src={nftImage || 'https://via.placeholder.com/400x300?text=NFT+Image'}
+                  alt="NFT Preview"
+                  style={styles.nftImage}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
+                  }}
+                />
               </div>
 
-              <p style={{ color: '#cbd5e1', marginBottom: '16px' }}>
-                {nftDescription || 'No description provided'}
-              </p>
+              {/* Details */}
+              <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #1f2937' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#ffffff' }}>{nftName || 'My NFT'}</h3>
+                    <p style={{ color: '#9ca3af', fontSize: '1.125rem' }}>{nftSymbol ? `#${nftSymbol}` : '#NFT'}</p>
+                  </div>
+                  <span style={{ padding: '0.25rem 0.75rem', backgroundColor: 'rgba(30, 64, 175, 0.5)', color: '#93c5fd', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 500, border: '1px solid #1e40af' }}>
+                    Metaplex Standard
+                  </span>
+                </div>
 
-              <div style={styles.previewSection}>
-                <div style={styles.previewLabel}>Metadata URI</div>
-                <div style={styles.previewValue}>
+                <p style={{ color: '#d1d5db', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                  {nftDescription || 'No description provided.'}
+                </p>
+              </div>
+
+              {/* Attributes */}
+              <div>
+                <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', color: '#e5e7eb' }}>Key Properties</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.875rem' }}>
+                  <div style={{ padding: '0.25rem 0.75rem', backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '0.5rem' }}>
+                    <span style={{ color: '#9ca3af', display: 'block', fontSize: '0.75rem' }}>Creator</span>
+                    <span style={{ fontWeight: 500, color: '#ffffff' }}>{shortAddress}</span>
+                  </div>
+                  <div style={{ padding: '0.25rem 0.75rem', backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '0.5rem' }}>
+                    <span style={{ color: '#9ca3af', display: 'block', fontSize: '0.75rem' }}>Royalties</span>
+                    <span style={{ fontWeight: 500, color: '#ffffff' }}>0%</span>
+                  </div>
+                  <div style={{ padding: '0.25rem 0.75rem', backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '0.5rem' }}>
+                    <span style={{ color: '#9ca3af', display: 'block', fontSize: '0.75rem' }}>Mutable</span>
+                    <span style={{ fontWeight: 500, color: '#ffffff' }}>Yes</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* URI */}
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Metadata URI</div>
+                <div style={{ color: '#ffffff', fontSize: '0.875rem', overflowWrap: 'break-word' }}>
                   {nftUri ? (
-                    <a 
-                      href={nftUri} 
-                      target="_blank" 
+                    <a
+                      href={nftUri}
+                      target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#60a5fa', textDecoration: 'none' }}
+                      style={{ color: '#60a5fa', textDecoration: 'none', transition: 'color 0.3s ease' }}
                     >
-                      {nftUri.length > 40 ? `${nftUri.slice(0, 40)}...` : nftUri}
+                      {nftUri.length > 50 ? `${nftUri.slice(0, 50)}...` : nftUri}
                     </a>
                   ) : (
-                    <span style={{ color: '#94a3b8' }}>Not set</span>
+                    <span style={{ color: '#6b7280' }}>Not set</span>
                   )}
                 </div>
               </div>
-
-              <div>
-                <h4 style={{ fontWeight: 600, marginBottom: '12px', color: '#e2e8f0' }}>Properties</h4>
-                <div style={styles.attributeBadge}>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>Creator</div>
-                  <div style={{ fontSize: '14px', fontWeight: 500 }}>
-                    {publicKey ? `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}` : 'Not connected'}
-                  </div>
-                </div>
-                <div style={styles.attributeBadge}>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>Mutable</div>
-                  <div style={{ fontSize: '14px', fontWeight: 500 }}>Yes</div>
-                </div>
-                <div style={styles.attributeBadge}>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>Royalties</div>
-                  <div style={{ fontSize: '14px', fontWeight: 500 }}>0%</div>
-                </div>
-              </div>
             </div>
           </div>
-        </div>
 
-        {/* Right Panel - Creation Panel */}
-        <div>
-          {/* Wallet Status */}
-          <div style={styles.card}>
-            <h2 style={styles.cardHeader}>
-              <span style={{ color: '#60a5fa' }}>👛</span> Wallet Status
-            </h2>
-            
-            <div style={styles.walletStatus}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={styles.statusDot} />
-                <span style={{ fontWeight: 500 }}>
-                  {connected ? 'Connected' : 'Not Connected'}
-                </span>
-              </div>
-              {publicKey && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '14px', color: '#94a3b8' }}>
-                    {publicKey.toString().slice(0, 4)}...{publicKey.toString().slice(-4)}
+          {/* Right Panel - Creation Form */}
+          <div>
+            {/* Wallet Status Card */}
+            <div style={{ ...styles.card, marginBottom: '2rem' }}>
+              <h2 style={{ ...styles.cardHeader, marginBottom: '1rem' }}>
+                <WalletIcon /> Wallet Status
+              </h2>
+
+              <div style={{
+                padding: '1rem',
+                borderRadius: '0.75rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: connected ? 'rgba(4, 120, 87, 0.3)' : 'rgba(146, 64, 14, 0.3)',
+                border: connected ? '1px solid rgba(5, 150, 105, 0.5)' : '1px solid rgba(217, 119, 6, 0.5)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ width: '0.75rem', height: '0.75rem', borderRadius: '50%', marginRight: '0.75rem', backgroundColor: connected ? '#10b981' : '#f59e0b' }} />
+                  <span style={{ fontWeight: 500 }}>
+                    {connected ? 'Wallet Connected' : 'Please Connect Wallet'}
                   </span>
+                </div>
+                {publicKey && (
                   <button
-                    onClick={() => copyToClipboard(publicKey.toString())}
-                    style={styles.copyButton}
+                    onClick={() => copyToClipboard(publicKey.toBase58())}
+                    style={{ padding: '0.5rem', backgroundColor: 'rgba(55, 65, 81, 0.5)', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', transition: 'background-color 0.3s ease' }}
                     title="Copy address"
                   >
-                    {copied ? '✓' : '📋'}
+                    <CopyIcon copied={copied} />
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            {!connected && (
-              <div style={{
-                padding: '16px',
-                background: 'rgba(234, 179, 8, 0.1)',
-                border: '1px solid rgba(234, 179, 8, 0.2)',
-                borderRadius: '12px',
-                color: '#fbbf24',
-              }}>
-                <p style={{ fontSize: '14px' }}>
-                  Please connect your wallet to create an NFT
-                </p>
-              </div>
-            )}
-          </div>
+            {/* Creation Form Card */}
+            <div style={styles.card}>
+              <h2 style={styles.cardHeader}>
+                NFT Metadata
+              </h2>
 
-          {/* Creation Panel */}
-          <div style={{ ...styles.card, marginTop: '24px' }}>
-            <h2 style={styles.cardHeader}>Create NFT</h2>
-            
-            <div>
-              {/* Input Fields */}
-              <div style={{ marginBottom: '24px' }}>
-                <label style={styles.inputLabel}>
-                  NFT Name *
-                </label>
-                <input
-                  type="text"
-                  value={nftName}
-                  onChange={(e) => setNftName(e.target.value)}
-                  placeholder="Enter NFT name"
-                  style={styles.input}
-                  maxLength={32}
-                />
-                <div style={styles.inputDescription}>
-                  The name of your NFT (max 32 characters)
+              {/* Form Fields */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* NFT Name */}
+                <div>
+                  <label htmlFor="name" style={styles.inputLabel}>NFT Name <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={nftName}
+                    onChange={(e) => setNftName(e.target.value)}
+                    placeholder="Enter NFT name (max 32 chars)"
+                    maxLength={32}
+                    style={styles.input}
+                  />
                 </div>
 
-                <label style={styles.inputLabel}>
-                  Symbol *
-                </label>
-                <input
-                  type="text"
-                  value={nftSymbol}
-                  onChange={(e) => setNftSymbol(e.target.value.toUpperCase())}
-                  placeholder="Enter symbol (e.g., NFT)"
-                  style={styles.input}
-                  maxLength={10}
-                />
-                <div style={styles.inputDescription}>
-                  The symbol/ticker for your NFT (max 10 characters)
+                {/* Symbol */}
+                <div>
+                  <label htmlFor="symbol" style={styles.inputLabel}>Symbol <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input
+                    id="symbol"
+                    type="text"
+                    value={nftSymbol}
+                    onChange={(e) => setNftSymbol(e.target.value.toUpperCase())}
+                    placeholder="e.g., MYNFT (max 10 chars)"
+                    maxLength={10}
+                    style={styles.input}
+                  />
                 </div>
 
-                <label style={styles.inputLabel}>
-                  Metadata URI *
-                </label>
-                <input
-                  type="text"
-                  value={nftUri}
-                  onChange={(e) => setNftUri(e.target.value)}
-                  placeholder="https://your-metadata.json"
-                  style={styles.input}
-                />
-                <div style={styles.inputDescription}>
-                  URI pointing to your NFT's metadata JSON file
+                {/* Metadata URI */}
+                <div>
+                  <label htmlFor="uri" style={styles.inputLabel}>Metadata URI <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input
+                    id="uri"
+                    type="text"
+                    value={nftUri}
+                    onChange={(e) => setNftUri(e.target.value)}
+                    placeholder="https://your-metadata.json (Arweave/IPFS)"
+                    style={styles.input}
+                  />
+                  <p style={styles.inputDescription}>URI pointing to your off-chain metadata JSON file.</p>
                 </div>
 
-                <label style={styles.inputLabel}>
-                  Image URL (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={nftImage}
-                  onChange={(e) => setNftImage(e.target.value)}
-                  placeholder="https://your-image.png"
-                  style={styles.input}
-                />
-                <div style={styles.inputDescription}>
-                  Direct URL to your NFT image for preview
+                {/* Image URL (for preview only) */}
+                <div>
+                  <label htmlFor="image" style={styles.inputLabel}>Image URL (Preview)</label>
+                  <input
+                    id="image"
+                    type="text"
+                    value={nftImage}
+                    onChange={(e) => setNftImage(e.target.value)}
+                    placeholder="https://your-image.png"
+                    style={styles.input}
+                  />
                 </div>
 
-                <label style={styles.inputLabel}>
-                  Description (Optional)
-                </label>
-                <textarea
-                  value={nftDescription}
-                  onChange={(e) => setNftDescription(e.target.value)}
-                  placeholder="Describe your NFT..."
-                  style={{
-                    ...styles.input,
-                    minHeight: '80px',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                  }}
-                  maxLength={200}
-                />
-                <div style={styles.inputDescription}>
-                  Brief description of your NFT (max 200 characters)
-                </div>
-              </div>
-
-              {/* Features */}
-              <div style={{ marginBottom: '24px' }}>
-                <div style={styles.featureItem}>
-                  <div style={{ ...styles.featureDot, backgroundColor: '#10b981' }} />
-                  <span>0% Royalty Fees</span>
-                </div>
-                <div style={styles.featureItem}>
-                  <div style={{ ...styles.featureDot, backgroundColor: '#3b82f6' }} />
-                  <span>Mutable Metadata (can be updated)</span>
-                </div>
-                <div style={styles.featureItem}>
-                  <div style={{ ...styles.featureDot, backgroundColor: '#8b5cf6' }} />
-                  <span>Creator Verified</span>
+                {/* Description */}
+                <div>
+                  <label htmlFor="description" style={styles.inputLabel}>Description (Optional)</label>
+                  <textarea
+                    id="description"
+                    value={nftDescription}
+                    onChange={(e) => setNftDescription(e.target.value)}
+                    placeholder="Brief description of your NFT (max 200 chars)"
+                    maxLength={200}
+                    rows={3}
+                    style={{ ...styles.input, minHeight: '4.5rem', resize: 'vertical', fontFamily: 'inherit' }}
+                  />
                 </div>
               </div>
 
               {/* Error Message */}
               {error && (
                 <div style={styles.errorBox}>
-                  <p>{error}</p>
+                  <ErrorIcon />
+                  <p style={{ margin: 0, fontWeight: 500 }}>{error}</p>
                 </div>
               )}
 
@@ -607,7 +504,10 @@ export const CreateMonadNFT = () => {
               <button
                 onClick={createNFT}
                 disabled={!connected || isCreating}
-                style={styles.createButton}
+                style={{
+                  ...styles.createButtonBase,
+                  ...(connected && !isCreating ? styles.createButtonEnabled : styles.createButtonDisabled)
+                }}
                 onMouseOver={(e) => {
                   if (connected && !isCreating) {
                     e.currentTarget.style.transform = 'translateY(-2px)';
@@ -617,89 +517,84 @@ export const CreateMonadNFT = () => {
                 onMouseOut={(e) => {
                   if (connected && !isCreating) {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)';
                   }
                 }}
               >
-                {isCreating ? 'Creating NFT...' : 'Create NFT'}
+                {isCreating ? 'Creating NFT... (Confirm in Wallet)' : 'Create NFT on Devnet'}
               </button>
 
               {/* Success Message */}
               {nftAddress && (
                 <div style={styles.successCard}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <div style={{
-                      width: '24px',
-                      height: '24px',
-                      background: '#16a34a',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <span style={{ color: 'white', fontWeight: 'bold' }}>✓</span>
-                    </div>
-                    <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#166534' }}>NFT Created Successfully!</h3>
-                  </div>
-                  
-                  <div>
-                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>NFT Address</div>
-                    <div style={styles.addressBox}>
-                      <code style={{ fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {nftAddress}
-                      </code>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => copyToClipboard(nftAddress)}
-                          style={styles.copyButton}
-                          title="Copy address"
-                        >
-                          {copied ? '✓ Copied!' : '📋'}
-                        </button>
-                      </div>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <SuccessIcon />
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#6ee7b7' }}>NFT Created!</h3>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', margin: '16px 0' }}>
-                    <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.3)', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>Network</div>
-                      <div style={{ fontWeight: 600 }}>Solana Devnet</div>
+                  <div style={{ fontSize: '0.875rem', color: '#9ca3af', marginBottom: '0.5rem' }}>NFT Mint Address:</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', backgroundColor: '#1f2937', borderRadius: '0.5rem', border: '1px solid rgba(55, 65, 81, 0.5)' }}>
+                    <code style={{ fontSize: '0.875rem', color: '#60a5fa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '0.5rem' }}>{nftAddress}</code>
+                    <button
+                      onClick={() => copyToClipboard(nftAddress)}
+                      style={{ padding: '0.375rem', backgroundColor: '#4b5563', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', transition: 'background-color 0.3s ease', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                      title="Copy address"
+                    >
+                      <CopyIcon copied={copied} />
+                    </button>
+                  </div>
+
+                  <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div style={{ padding: '0.75rem', backgroundColor: '#1f2937', borderRadius: '0.5rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Network</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Solana Devnet</div>
                     </div>
-                    <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.3)', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>Token Standard</div>
-                      <div style={{ fontWeight: 600 }}>Metaplex NFT</div>
+                    <div style={{ padding: '0.75rem', backgroundColor: '#1f2937', borderRadius: '0.5rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Standard</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Metaplex Token</div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => viewOnExplorer(nftAddress)}
-                    style={styles.explorerButton}
+                    style={{
+                      width: '100%',
+                      marginTop: '1rem',
+                      padding: '0.75rem',
+                      backgroundColor: 'rgba(30, 64, 175, 0.5)',
+                      border: '1px solid #2563eb',
+                      color: '#93c5fd',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.3s ease',
+                      fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                    }}
                   >
-                    🔍 View on Solana Explorer
+                    <ExplorerIcon /> View on Explorer
                   </button>
                 </div>
               )}
 
               {/* Info Box */}
               <div style={styles.infoBox}>
-                <p>
-                  <strong>Note:</strong> This will create a new NFT on Solana devnet. 
-                  You'll need a small amount of SOL for transaction fees.
-                </p>
-                <p style={{ marginTop: '8px' }}>
-                  <strong>Metadata URI:</strong> Should point to a JSON file with your NFT's metadata 
-                  (name, description, image, attributes, etc.).
+                <p style={{ margin: 0 }}>
+                  <strong>Note:</strong> This uses the Umi framework to call the
+                  Metaplex Token Metadata program on **Solana Devnet**.
+                  Ensure your connected wallet has Devnet SOL for transaction fees.
                 </p>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Footer */}
-      <div style={styles.footer}>
-        <p>Powered by Metaplex • Solana • Umi Framework</p>
-      </div>
+      <footer style={styles.footer}>
+        <p>Powered by Metaplex Umi & Solana Wallet Adapter</p>
+      </footer>
     </div>
   );
 };

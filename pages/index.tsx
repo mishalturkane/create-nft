@@ -14,6 +14,7 @@ import Head from "next/head";
 import { FormEvent, useState } from "react";
 import { useUmi } from "./context/useUmi";
 
+
 import styles from "@/styles/Home.module.css";
 const inter = Inter({ subsets: ["latin"] });
 
@@ -69,8 +70,8 @@ export default function Home() {
     const data = Object.fromEntries(formData) as { name: string; image: File };
 
     try {
-      const mint = await uploadAndCreateNft(umi, data.name, data.image);
-      setMintCreated(mint);
+    
+      
     } finally {
       setLoading(false);
     }
@@ -103,57 +104,6 @@ export default function Home() {
           </svg>
           <p>Creating the NFT...</p>
         </div>
-      );
-    }
-
-    if (mintCreated) {
-      return (
-        <a
-          className={styles.success}
-          target="_blank"
-          href={
-            "https://www.solaneyes.com/address/" +
-            base58PublicKey(mintCreated) +
-            "?cluster=devnet"
-          }
-          rel="noreferrer"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="192"
-            height="192"
-            fill="currentColor"
-            viewBox="0 0 256 256"
-          >
-            <rect width="256" height="256" fill="none"></rect>
-            <polyline
-              points="172 104 113.3 160 84 132"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="24"
-            ></polyline>
-            <circle
-              cx="128"
-              cy="128"
-              r="96"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="24"
-            ></circle>
-          </svg>
-          <div>
-            <p>
-              <strong>NFT Created</strong> at the following address
-            </p>
-            <p>
-              <code>{base58PublicKey(mintCreated)}</code>
-            </p>
-          </div>
-        </a>
       );
     }
 
